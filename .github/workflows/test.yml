@@ -71,6 +71,16 @@ jobs:
         # Run the test-generator.php script
         php test-generator.php
 
+        # Add debugging to inspect if the module is created
+        echo "Checking if module directory exists..."
+        if [ ! -d "protected/modules/testmodule" ]; then
+          echo "Error: Module directory does not exist after generation!"
+          exit 1
+        fi
+        
+        echo "Module directory exists, checking structure..."
+        ls -l protected/modules/testmodule
+
     # Step 4: Ensure module structure and files are generated
     - name: Ensure module structure and files are generated
       run: |
@@ -150,7 +160,6 @@ jobs:
           echo "Error: Zip file $ZIP_PATH does not exist!"
           exit 1
         fi
-        # Additional validation can go here...
       
     # Step 7: Clean up (optional)
     - name: Clean up
