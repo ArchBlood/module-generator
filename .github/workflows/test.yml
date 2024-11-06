@@ -1,0 +1,119 @@
+name: Test Module Generator
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    # Step 1: Checkout the code
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    # Step 2: Set up PHP (without Composer)
+    - name: Set up PHP
+      uses: shivammathur/setup-php@v2.31.1
+
+      with:
+        php-version: '8.2'
+    
+    # Step 3: Run the HumHub Module Generator Test
+    - name: Run HumHub Module Generator Test
+      run: |
+        # Ensure the file is executable by running the class directly
+        php -r "require_once 'classes/HumHubModuleGenerator.php';"
+
+        # Create a test script that loads the test.yml and runs the generator
+        echo "<?php
+        \$testData = yaml_parse_file('test.yml');
+        \$moduleName = \$testData['module']['name'];
+        \$moduleDescription = \$testData['module']['description'];
+        \$author = \$testData['module']['author']['name'];
+        \$email = \$testData['module']['author']['email'];
+        \$homepage = \$testData['module']['author']['homepage'];
+        \$role = \$testData['module']['author']['role'];
+
+        \$generator = new HumHubModuleGenerator(\$moduleName, \$moduleDescription, \$author, \$email, \$homepage, \$role);
+        \$result = \$generator->generate();
+
+        echo \"Module generated: {$moduleName}\\n\";
+        echo \"Output: \" . \$result['message'] . \"\\n\";
+        echo \"Zip path: \" . \$result['zipPath'] . \"\\n\";
+        " > test-generator.php
+        
+        php test-generator.php
+
+    # Step 4: Validate the generated files
+    - name: Validate generated files
+      run: |
+        MODULE_PATH="protected/modules/testmodule"
+        ZIP_PATH="testmodule.zip"
+        
+        # Check if the generated files exist
+        if [ ! -d "$MODULE_PATH" ]; then
+          echo "Directory $MODULE_PATH does not exist!"
+          exit 1
+        fi
+
+        # Check if the zip file was created
+        if [ ! -f "$ZIP_PATH" ]; then
+          echo "Zip file $ZIP_PATH does not exist!"
+          exit 1
+        fi
+
+        # Check directory structure
+        REQUIRED_DIRS=(
+          "$MODULE_PATH/assets"
+          "$MODULE_PATH/controllers"
+          "$MODULE_PATH/models"
+          "$MODULE_PATH/views"
+          "$MODULE_PATH/views/default"
+          "$MODULE_PATH/resources"
+          "$MODULE_PATH/resources/js"
+          "$MODULE_PATH/resources/css"
+        )
+
+        for DIR in "${REQUIRED_DIRS[@]}"; do
+          if [ ! -d "$DIR" ]; then
+            echo "Directory $DIR does not exist!"
+            exit 1
+          fi
+        done
+
+        # Validate content of module.json and other files (example check for module.json)
+        MODULE_JSON="$MODULE_PATH/module.json"
+        if [ ! -f "$MODULE_JSON" ]; then
+          echo "$MODULE_JSON does not exist!"
+          exit 1
+        fi
+
+        MODULE_JSON_CONTENT=$(cat $MODULE_JSON)
+        if [[ ! "$MODULE_JSON_CONTENT" =~ "testmodule" ]]; then
+          echo "Module ID in module.json is incorrect."
+          exit 1
+        fi
+
+        # Additional checks for other files (config.php, Module.php, etc.)
+        # Example for checking Module.php
+        MODULE_PHP="$MODULE_PATH/Module.php"
+        if [ ! -f "$MODULE_PHP" ]; then
+          echo "$MODULE_PHP does not exist!"
+          exit 1
+        fi
+        MODULE_PHP_CONTENT=$(cat $MODULE_PHP)
+        if [[ ! "$MODULE_PHP_CONTENT" =~ "testmodule" ]]; then
+          echo "Module class in Module.php is incorrect."
+          exit 1
+        fi
+
+    # Step 5: Clean up (optional, e.g., remove temporary test files)
+    - name: Clean up
+      run: |
+        rm -f test-generator.php
