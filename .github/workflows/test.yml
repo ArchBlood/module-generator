@@ -79,6 +79,24 @@ jobs:
           mkdir -p "$MODULE_PATH"
         fi
 
+        # Create the required subdirectories
+        REQUIRED_DIRS=(
+          "$MODULE_PATH/assets"
+          "$MODULE_PATH/controllers"
+          "$MODULE_PATH/models"
+          "$MODULE_PATH/views"
+          "$MODULE_PATH/resources"
+          "$MODULE_PATH/resources/js"
+          "$MODULE_PATH/resources/css"
+        )
+        
+        for DIR in "${REQUIRED_DIRS[@]}"; do
+          if [ ! -d "$DIR" ]; then
+            echo "Directory $DIR does not exist, creating it..."
+            mkdir -p "$DIR"
+          fi
+        done
+
         # Apply permissions to the generated files and directories
         chmod -R 755 "$MODULE_PATH"
         chmod -R 755 "$MODULE_PATH/assets"
