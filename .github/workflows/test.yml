@@ -23,15 +23,22 @@ jobs:
       with:
         php-version: '8.2'
     
-    # Step 3: Run the HumHub Module Generator Test
-    - name: Run HumHub Module Generator Test
+    # Step 3: Create test-generator.php from test.yml and run HumHub Module Generator Test
+    - name: Create and run HumHub Module Generator Test
       run: |
         # Ensure the file is executable by running the class directly
         php -r "require_once 'src/classes/HumHubModuleGenerator.php';"
 
-        # Create a test script that loads the test.yml and runs the generator
+        # Generate test-generator.php from test.yml
         echo "<?php
+        // Load and parse the YAML configuration
         \$testData = yaml_parse_file('test.yml');
+        if (\$testData === false) {
+            echo 'Error reading the YAML file.\\n';
+            exit(1);
+        }
+
+        // Extract data from the YAML file
         \$moduleName = \$testData['module']['name'];
         \$moduleDescription = \$testData['module']['description'];
         \$author = \$testData['module']['author']['name'];
@@ -39,14 +46,20 @@ jobs:
         \$homepage = \$testData['module']['author']['homepage'];
         \$role = \$testData['module']['author']['role'];
 
+        // Include the HumHubModuleGenerator class
+        require_once __DIR__ . '/src/classes/HumHubModuleGenerator.php';
+
+        // Create a new instance of the generator and run it
         \$generator = new HumHubModuleGenerator(\$moduleName, \$moduleDescription, \$author, \$email, \$homepage, \$role);
         \$result = \$generator->generate();
 
-        echo \"Module generated: {$moduleName}\\n\";
-        echo \"Output: \" . \$result['message'] . \"\\n\";
-        echo \"Zip path: \" . \$result['zipPath'] . \"\\n\";
+        // Output results
+        echo 'Module generated: {$moduleName}\\n';
+        echo 'Output: ' . \$result['message'] . '\\n';
+        echo 'Zip path: ' . \$result['zipPath'] . '\\n';
         " > test-generator.php
         
+        # Run the test-generator.php script
         php test-generator.php
 
     # Step 4: Ensure correct permissions after generation
