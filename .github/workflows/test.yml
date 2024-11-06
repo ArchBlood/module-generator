@@ -72,7 +72,13 @@ jobs:
     - name: Set correct permissions after module generation
       run: |
         MODULE_PATH="protected/modules/testmodule"
-        
+
+        # Check if the module directory exists, if not, create it
+        if [ ! -d "$MODULE_PATH" ]; then
+          echo "Directory $MODULE_PATH does not exist, creating it..."
+          mkdir -p "$MODULE_PATH"
+        fi
+
         # Apply permissions to the generated files and directories
         chmod -R 755 "$MODULE_PATH"
         chmod -R 755 "$MODULE_PATH/assets"
