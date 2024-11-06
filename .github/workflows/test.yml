@@ -20,11 +20,18 @@ jobs:
     # Step 2: Set up PHP (without Composer)
     - name: Set up PHP
       uses: shivammathur/setup-php@2.31.1
-
       with:
         php-version: '8.2'
     
-    # Step 3: Run the HumHub Module Generator Test
+    # Step 3: Ensure correct permissions for files and directories
+    - name: Set correct permissions
+      run: |
+        # Set proper file permissions for generated files and directories
+        chmod -R 755 ./protected
+        chmod -R 755 ./src
+        chmod 644 ./test.yml
+
+    # Step 4: Run the HumHub Module Generator Test
     - name: Run HumHub Module Generator Test
       run: |
         # Ensure the file is executable by running the class directly
@@ -50,7 +57,7 @@ jobs:
         
         php test-generator.php
 
-    # Step 4: Validate the generated files
+    # Step 5: Validate the generated files
     - name: Validate generated files
       run: |
         MODULE_PATH="protected/modules/testmodule"
@@ -113,7 +120,7 @@ jobs:
           exit 1
         fi
 
-    # Step 5: Clean up (optional, e.g., remove temporary test files)
+    # Step 6: Clean up (optional, e.g., remove temporary test files)
     - name: Clean up
       run: |
         rm -f test-generator.php
