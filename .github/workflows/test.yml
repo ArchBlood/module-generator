@@ -23,10 +23,10 @@ jobs:
       with:
         php-version: '8.2'
 
-    # Step 3: Create and run the module generator
-    - name: Generate Module
+    # Step 3: Generate the module using the HumHubModuleGenerator.php
+    - name: Run the HumHub Module Generator
       run: |
-        # Ensure the HumHubModuleGenerator.php is available
+        # Check if the HumHubModuleGenerator.php file exists
         if [ ! -f "src/classes/HumHubModuleGenerator.php" ]; then
           echo "Error: HumHubModuleGenerator.php does not exist!"
           exit 1
@@ -38,7 +38,7 @@ jobs:
           exit 1
         fi
 
-        # Generate test-generator.php from test.yml
+        # Create test-generator.php from test.yml
         echo "<?php
         // Load and parse the YAML configuration
         \$testData = yaml_parse_file('.github/workflows/test.yml');
@@ -86,7 +86,7 @@ jobs:
           "$MODULE_PATH/resources/css"
         )
 
-        # Check if module directory exists, if not, create it
+        # Check if the module directory exists, if not, create it
         if [ ! -d "$MODULE_PATH" ]; then
           echo "Directory $MODULE_PATH does not exist, creating it..."
           mkdir -p "$MODULE_PATH"
@@ -100,7 +100,7 @@ jobs:
           fi
         done
 
-        # Check if module.json exists, create it if missing
+        # Ensure module.json exists, create it if missing
         MODULE_JSON="$MODULE_PATH/module.json"
         if [ ! -f "$MODULE_JSON" ]; then
           echo "$MODULE_JSON does not exist, creating it..."
@@ -118,7 +118,7 @@ jobs:
           }' > "$MODULE_JSON"
         fi
 
-        # Check if Module.php exists, create it if missing
+        # Ensure Module.php exists, create it if missing
         MODULE_PHP="$MODULE_PATH/Module.php"
         if [ ! -f "$MODULE_PHP" ]; then
           echo "$MODULE_PHP does not exist, creating it..."
@@ -142,8 +142,6 @@ class Module extends Module
     - name: Set correct permissions after module generation
       run: |
         MODULE_PATH="protected/modules/testmodule"
-
-        # Apply permissions to the generated files and directories
         chmod -R 755 "$MODULE_PATH"
         chmod 644 "$MODULE_PATH/module.json"
         chmod -R 755 "$MODULE_PATH/assets"
@@ -158,14 +156,6 @@ class Module extends Module
     - name: Validate generated files
       run: |
         MODULE_PATH="protected/modules/testmodule"
-
-        # Check if the generated files exist
-        if [ ! -d "$MODULE_PATH" ]; then
-          echo "Directory $MODULE_PATH does not exist!"
-          exit 1
-        fi
-
-        # Ensure all required subdirectories exist
         REQUIRED_DIRS=(
           "$MODULE_PATH/assets"
           "$MODULE_PATH/controllers"
@@ -176,30 +166,36 @@ class Module extends Module
           "$MODULE_PATH/resources/css"
         )
 
+        # Ensure the module directory and required subdirectories exist
+        if [ ! -d "$MODULE_PATH" ]; then
+          echo "Error: Directory $MODULE_PATH does not exist!"
+          exit 1
+        fi
+
         for DIR in "${REQUIRED_DIRS[@]}"; do
           if [ ! -d "$DIR" ]; then
-            echo "Directory $DIR does not exist!"
+            echo "Error: Directory $DIR does not exist!"
             exit 1
           fi
         done
 
-        # Validate content of module.json
+        # Ensure module.json exists and contains correct data
         MODULE_JSON="$MODULE_PATH/module.json"
         if [ ! -f "$MODULE_JSON" ]; then
-          echo "$MODULE_JSON does not exist!"
+          echo "Error: $MODULE_JSON does not exist!"
           exit 1
         fi
 
         MODULE_JSON_CONTENT=$(cat $MODULE_JSON)
         if [[ ! "$MODULE_JSON_CONTENT" =~ "testmodule" ]]; then
-          echo "Module ID in module.json is incorrect."
+          echo "Error: Module ID in module.json is incorrect!"
           exit 1
         fi
 
-        # Check if Module.php exists
+        # Ensure Module.php exists
         MODULE_PHP="$MODULE_PATH/Module.php"
         if [ ! -f "$MODULE_PHP" ]; then
-          echo "$MODULE_PHP does not exist!"
+          echo "Error: $MODULE_PHP does not exist!"
           exit 1
         fi
 
