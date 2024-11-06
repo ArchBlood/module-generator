@@ -11,25 +11,28 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     # Step 1: Checkout the code
     - name: Checkout code
       uses: actions/checkout@v4
-    
+
     # Step 2: Set up PHP (without Composer)
     - name: Set up PHP
       uses: shivammathur/setup-php@2.31.1
       with:
         php-version: '8.2'
-    
-    # Step 3: Create test-generator.php from test.yml and run HumHub Module Generator Test
+
+    # Step 3: Create and run HumHub Module Generator Test
     - name: Create and run HumHub Module Generator Test
       run: |
-        # Ensure the file is executable by running the class directly
-        php -r "require_once 'src/classes/HumHubModuleGenerator.php';"
-
-        # Verify if the test.yml exists and print its path
+        # Verify if HumHubModuleGenerator.php exists
+        if [ ! -f "src/classes/HumHubModuleGenerator.php" ]; then
+          echo "Error: HumHubModuleGenerator.php does not exist!"
+          exit 1
+        fi
+        
+        # Verify if the test.yml exists
         if [ ! -f ".github/workflows/test.yml" ]; then
           echo "Error: test.yml file does not exist in the expected directory!"
           exit 1
@@ -68,18 +71,19 @@ jobs:
         # Run the test-generator.php script
         php test-generator.php
 
-    # Step 4: Ensure correct permissions after generation
-    - name: Set correct permissions after module generation
+    # Step 4: Ensure module structure and files are generated
+    - name: Ensure module structure and files are generated
       run: |
         MODULE_PATH="protected/modules/testmodule"
-
-        # Check if the module directory exists, if not, create it
+        MODULE_JSON="$MODULE_PATH/module.json"
+        
+        # Check if the module directory exists
         if [ ! -d "$MODULE_PATH" ]; then
-          echo "Directory $MODULE_PATH does not exist, creating it..."
-          mkdir -p "$MODULE_PATH"
+          echo "Error: Directory $MODULE_PATH does not exist!"
+          exit 1
         fi
 
-        # Create the required subdirectories
+        # Ensure all required subdirectories are created
         REQUIRED_DIRS=(
           "$MODULE_PATH/assets"
           "$MODULE_PATH/controllers"
@@ -89,16 +93,44 @@ jobs:
           "$MODULE_PATH/resources/js"
           "$MODULE_PATH/resources/css"
         )
-        
+
         for DIR in "${REQUIRED_DIRS[@]}"; do
           if [ ! -d "$DIR" ]; then
-            echo "Directory $DIR does not exist, creating it..."
-            mkdir -p "$DIR"
+            echo "Error: Directory $DIR does not exist!"
+            exit 1
           fi
         done
 
+        # Ensure module.json file exists
+        if [ ! -f "$MODULE_JSON" ]; then
+          echo "Error: $MODULE_JSON does not exist!"
+          exit 1
+        fi
+
+        # Validate content of module.json
+        MODULE_JSON_CONTENT=$(cat $MODULE_JSON)
+        if [[ ! "$MODULE_JSON_CONTENT" =~ "testmodule" ]]; then
+          echo "Error: Module ID in module.json is incorrect."
+          exit 1
+        fi
+
+        # Check if other necessary files exist
+        MODULE_PHP="$MODULE_PATH/Module.php"
+        if [ ! -f "$MODULE_PHP" ]; then
+          echo "Error: $MODULE_PHP does not exist!"
+          exit 1
+        fi
+
+    # Step 5: Set correct permissions after module generation
+    - name: Set correct permissions after module generation
+      run: |
+        MODULE_PATH="protected/modules/testmodule"
+
         # Apply permissions to the generated files and directories
         chmod -R 755 "$MODULE_PATH"
+        chmod 644 "$MODULE_PATH/module.json"
+
+        # Apply specific permissions to subdirectories and files
         chmod -R 755 "$MODULE_PATH/assets"
         chmod -R 755 "$MODULE_PATH/controllers"
         chmod -R 755 "$MODULE_PATH/models"
@@ -106,72 +138,21 @@ jobs:
         chmod -R 755 "$MODULE_PATH/resources"
         chmod -R 755 "$MODULE_PATH/resources/js"
         chmod -R 755 "$MODULE_PATH/resources/css"
-        chmod 644 "$MODULE_PATH/module.json"
 
-    # Step 5: Validate the generated files
+    # Step 6: Validate the generated files (as extra validation if needed)
     - name: Validate generated files
       run: |
         MODULE_PATH="protected/modules/testmodule"
         ZIP_PATH="testmodule.zip"
         
-        # Check if the generated files exist
-        if [ ! -d "$MODULE_PATH" ]; then
-          echo "Directory $MODULE_PATH does not exist!"
-          exit 1
-        fi
-
         # Check if the zip file was created
         if [ ! -f "$ZIP_PATH" ]; then
-          echo "Zip file $ZIP_PATH does not exist!"
+          echo "Error: Zip file $ZIP_PATH does not exist!"
           exit 1
         fi
-
-        # Check directory structure
-        REQUIRED_DIRS=(
-          "$MODULE_PATH/assets"
-          "$MODULE_PATH/controllers"
-          "$MODULE_PATH/models"
-          "$MODULE_PATH/views"
-          "$MODULE_PATH/views/default"
-          "$MODULE_PATH/resources"
-          "$MODULE_PATH/resources/js"
-          "$MODULE_PATH/resources/css"
-        )
-
-        for DIR in "${REQUIRED_DIRS[@]}"; do
-          if [ ! -d "$DIR" ]; then
-            echo "Directory $DIR does not exist!"
-            exit 1
-          fi
-        done
-
-        # Validate content of module.json and other files (example check for module.json)
-        MODULE_JSON="$MODULE_PATH/module.json"
-        if [ ! -f "$MODULE_JSON" ]; then
-          echo "$MODULE_JSON does not exist!"
-          exit 1
-        fi
-
-        MODULE_JSON_CONTENT=$(cat $MODULE_JSON)
-        if [[ ! "$MODULE_JSON_CONTENT" =~ "testmodule" ]]; then
-          echo "Module ID in module.json is incorrect."
-          exit 1
-        fi
-
-        # Additional checks for other files (config.php, Module.php, etc.)
-        # Example for checking Module.php
-        MODULE_PHP="$MODULE_PATH/Module.php"
-        if [ ! -f "$MODULE_PHP" ]; then
-          echo "$MODULE_PHP does not exist!"
-          exit 1
-        fi
-        MODULE_PHP_CONTENT=$(cat $MODULE_PHP)
-        if [[ ! "$MODULE_PHP_CONTENT" =~ "testmodule" ]]; then
-          echo "Module class in Module.php is incorrect."
-          exit 1
-        fi
-
-    # Step 6: Clean up (optional, e.g., remove temporary test files)
+        # Additional validation can go here...
+      
+    # Step 7: Clean up (optional)
     - name: Clean up
       run: |
         rm -f test-generator.php
