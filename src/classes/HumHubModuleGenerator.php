@@ -50,19 +50,24 @@ class HumHubModuleGenerator
      */
     public function generate()
     {
-        $this->createDirectoryStructure();
-        $this->generateModuleJson();
-        $this->generateConfigPhp();
-        $this->generateModulePhp();
-        $this->generateController();
-        $this->generateView();
-        $this->generateAssets();
-        $this->createZipArchive();
+        try {
+            $this->createDirectoryStructure();
+            $this->generateModuleJson();
+            $this->generateConfigPhp();
+            $this->generateModulePhp();
+            $this->generateController();
+            $this->generateView();
+            $this->generateAssets();
+            $this->createZipArchive();
 
-        return [
-            'message' => "Module '{$this->moduleName}' has been generated successfully!",
-            'zipPath' => $this->getZipPath()
-        ];
+            return [
+                'message' => "Module '{$this->moduleName}' has been generated successfully!",
+                'zipPath' => $this->getZipPath()
+            ];
+        } catch (Exception $e) {
+            $this->cleanup(); // Clean up if there's an error
+            throw $e;
+        }
     }
 
     /**
@@ -76,8 +81,57 @@ class HumHubModuleGenerator
     }
 
     /**
-     * Creates the directory structure needed for the module.
+     * Cleans up generated files and directories.
+     * Should be called after the zip file has been downloaded.
+     *
+     * @return bool True if cleanup was successful, false otherwise.
      */
+    public function cleanup()
+    {
+        $success = true;
+
+        // Delete the module directory
+        if (file_exists($this->basePath)) {
+            $success &= $this->deleteDirectory($this->basePath);
+        }
+
+        // Delete the zip file
+        if (file_exists($this->zipPath)) {
+            $success &= unlink($this->zipPath);
+        }
+
+        return $success;
+    }
+
+    /**
+     * Recursively deletes a directory and its contents.
+     *
+     * @param string $dir Path to directory
+     * @return bool True if deletion was successful, false otherwise
+     */
+    private function deleteDirectory($dir)
+    {
+        if (!file_exists($dir)) {
+            return true;
+        }
+
+        if (!is_dir($dir)) {
+            return unlink($dir);
+        }
+
+        foreach (scandir($dir) as $item) {
+            if ($item == '.' || $item == '..') {
+                continue;
+            }
+
+            if (!$this->deleteDirectory($dir . DIRECTORY_SEPARATOR . $item)) {
+                return false;
+            }
+        }
+
+        return rmdir($dir);
+    }
+
     private function createDirectoryStructure()
     {
         $directories = [
@@ -132,6 +186,7 @@ class HumHubModuleGenerator
     {
         $content = <<<PHP
 <?php
+
 return [
     'id' => '{$this->moduleName}',
     'class' => 'humhub\\modules\\{$this->moduleName}\\Module',
@@ -158,14 +213,16 @@ PHP;
     {
         $content = <<<PHP
 <?php
+
 namespace humhub\modules\\{$this->moduleName};
 
 use Yii;
 use yii\helpers\Url;
 use humhub\modules\ui\menu\MenuLink;
-use humhub\components\Module as HumHubModule;
+use humhub\modules\ui\icon\widgets\Icon;
+use humhub\components\Module as BaseModule;
 
-class Module extends HumHubModule
+class Module extends BaseModule
 {
     /**
      * Event handler to initialize the Admin Menu.
@@ -179,9 +236,9 @@ class Module extends HumHubModule
 
         \$menu->addEntry(new MenuLink([
             'label' => Yii::t('{$this->moduleName}Module.base', 'My Module'),
-            'url' => Url::to(['/{$this->moduleName}']),
-            'icon' => Icon::get(''),
-            'isActive' => (Yii::\$app->controller->module && Yii::\$app->controller->module->id == '{$this->moduleName}' && Yii::\$app->controller->id == 'mymodule'),
+            'url' => Url::to(['/{$this->moduleName}/admin/index']),
+            'icon' => Icon::get('folder'),
+            'isActive' => (Yii::\$app->controller->module && Yii::\$app->controller->module->id == '{$this->moduleName}' && Yii::\$app->controller->id == '{$this->moduleName}'),
             'sortOrder' => 700,
             'isVisible' => true,
         ]));
@@ -206,9 +263,10 @@ PHP;
     {
         $content = <<<PHP
 <?php
+
 namespace humhub\modules\\{$this->moduleName}\controllers;
 
-use humhub\components\Controller;
+use humhub\modules\admin\components\Controller;
 use Yii;
 
 class DefaultController extends Controller
@@ -234,17 +292,20 @@ PHP;
     {
         $content = <<<PHP
 <?php
+
 use humhub\modules\\{$this->moduleName}\assets\Assets;
+
 Assets::register(\$this);
+
 ?>
 
 <div class="panel panel-default">
     <div class="panel-heading">
-        <strong><?= Yii::\$app->t('{$this->moduleName}Module.base', '{$this->moduleName}') ?></strong>
+        <strong><?= Yii::t('{$this->moduleName}Module.base', '{$this->moduleName}') ?></strong>
     </div>
     <div class="panel-body">
         <div id="{$this->moduleName}-content">
-            <h1>Welcome to <?= ucfirst($this->moduleName) ?></h1>
+            <?= \Yii::t('{$this->moduleName}Module.base', 'Welcome to the module template.') ?>
         </div>
     </div>
 </div>
@@ -259,6 +320,7 @@ PHP;
     {
         $content = <<<PHP
 <?php
+
 namespace humhub\modules\\{$this->moduleName}\assets;
 
 use yii\web\AssetBundle;
