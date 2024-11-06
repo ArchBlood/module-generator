@@ -29,10 +29,16 @@ jobs:
         # Ensure the file is executable by running the class directly
         php -r "require_once 'src/classes/HumHubModuleGenerator.php';"
 
+        # Verify if the test.yml exists and print its path
+        if [ ! -f ".github/workflows/test.yml" ]; then
+          echo "Error: test.yml file does not exist in the expected directory!"
+          exit 1
+        fi
+
         # Generate test-generator.php from test.yml
         echo "<?php
         // Load and parse the YAML configuration
-        \$testData = yaml_parse_file('test.yml');
+        \$testData = yaml_parse_file('.github/workflows/test.yml');
         if (\$testData === false) {
             echo 'Error reading the YAML file.\\n';
             exit(1);
