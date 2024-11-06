@@ -23,15 +23,7 @@ jobs:
       with:
         php-version: '8.2'
     
-    # Step 3: Ensure correct permissions for files and directories
-    - name: Set correct permissions
-      run: |
-        # Set proper file permissions for generated files and directories
-        chmod -R 755 ./protected
-        chmod -R 755 ./src
-        chmod 644 ./test.yml
-
-    # Step 4: Run the HumHub Module Generator Test
+    # Step 3: Run the HumHub Module Generator Test
     - name: Run HumHub Module Generator Test
       run: |
         # Ensure the file is executable by running the class directly
@@ -56,6 +48,22 @@ jobs:
         " > test-generator.php
         
         php test-generator.php
+
+    # Step 4: Ensure correct permissions after generation
+    - name: Set correct permissions after module generation
+      run: |
+        MODULE_PATH="protected/modules/testmodule"
+        
+        # Apply permissions to the generated files and directories
+        chmod -R 755 "$MODULE_PATH"
+        chmod -R 755 "$MODULE_PATH/assets"
+        chmod -R 755 "$MODULE_PATH/controllers"
+        chmod -R 755 "$MODULE_PATH/models"
+        chmod -R 755 "$MODULE_PATH/views"
+        chmod -R 755 "$MODULE_PATH/resources"
+        chmod -R 755 "$MODULE_PATH/resources/js"
+        chmod -R 755 "$MODULE_PATH/resources/css"
+        chmod 644 "$MODULE_PATH/module.json"
 
     # Step 5: Validate the generated files
     - name: Validate generated files
