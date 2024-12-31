@@ -1,6 +1,6 @@
 <?php
 
-require_once 'HumHubModuleGenerator.php';
+require_once 'class/HumHubModuleGenerator.php';
 
 session_start();
 $message = '';
