@@ -34,6 +34,7 @@ class HumHubModuleGenerator
     public function __construct($moduleName, $moduleDescription, $author, $email, $homepage, $role)
     {
         $this->moduleName = strtolower(preg_replace('/[^a-zA-Z0-9_]/', '', $moduleName));
+        $this->translate = ucwords(preg_replace('/[^a-zA-Z0-9_]/', '', $moduleName));
         $this->moduleDescription = $moduleDescription;
         $this->author = $author;
         $this->email = $email;
@@ -65,7 +66,7 @@ class HumHubModuleGenerator
                 'zipPath' => $this->getZipPath()
             ];
         } catch (Exception $e) {
-            $this->cleanup(); // Clean up if there's an error
+            $this->cleanup();
             throw $e;
         }
     }
@@ -235,7 +236,7 @@ class Module extends BaseModule
         \$menu = \$event->sender;
 
         \$menu->addEntry(new MenuLink([
-            'label' => Yii::t('{$this->moduleName}Module.base', 'My Module'),
+            'label' => Yii::t('{$this->translate}Module.base', 'My Module'),
             'url' => Url::to(['/{$this->moduleName}/admin/index']),
             'icon' => Icon::get('folder'),
             'isActive' => (Yii::\$app->controller->module && Yii::\$app->controller->module->id == '{$this->moduleName}' && Yii::\$app->controller->id == '{$this->moduleName}'),
@@ -301,11 +302,11 @@ Assets::register(\$this);
 
 <div class="panel panel-default">
     <div class="panel-heading">
-        <strong><?= Yii::t('{$this->moduleName}Module.base', '{$this->moduleName}') ?></strong>
+        <strong><?= Yii::t('{$this->translate}Module.base', '{$this->moduleName}') ?></strong>
     </div>
     <div class="panel-body">
         <div id="{$this->moduleName}-content">
-            <?= \Yii::t('{$this->moduleName}Module.base', 'Welcome to the module template.') ?>
+            <?= \Yii::t('{$this->translate}Module.base', 'Welcome to the module template.') ?>
         </div>
     </div>
 </div>
@@ -368,4 +369,3 @@ PHP;
         }
     }
 }
-?>
