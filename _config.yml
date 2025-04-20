@@ -1,0 +1,29 @@
+# Site settings
+title: Module Generator
+description: A tool for generating HumHub modules
+baseurl: "https://archblood.github.io"
+url: "https://archblood.github.io/module-generator"
+
+# Build settings
+markdown: kramdown
+theme: minima
+plugins:
+  - jekyll-feed
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
+
+# Defaults
+defaults:
+  -
+    scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+      author: "ArchBlood"
